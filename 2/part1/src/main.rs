@@ -1,3 +1,4 @@
+use core::panic;
 use std::{io::{BufRead, BufReader}, fs::File};
 
 enum Play {
@@ -21,20 +22,30 @@ fn get_score_from_line(line: String) -> u8 {
         0x41 => Play::Rock,
         0x42 => Play::Paper,
         0x43 => Play::Scissors,
-        _ => panic!("Invalid play")
+        _ => panic!("Invalid play: {}", game[0].as_bytes()[0])
     };
 
-    let response = match game[0].as_bytes()[0] {
+    let response = match game[1].as_bytes()[0] {
         0x58 => Response::Rock,
         0x59 => Response::Paper,
-        0x60 => Response::Scissors,
-        _ => panic!("Invalid play")
+        0x5A => Response::Scissors,
+        _ => panic!("Invalid response: {}", game[1].as_bytes()[0])
     };
 
-    let match_score = (((play as i8) - (response as i8)) % 3) * 3;
+    let play_score = play as i8;
+    let response_score = response as i8;
+
+    let match_score_i8 = ((response_score) - (play_score) + 1).rem_euclid(3) * 3;
+
+    let match_score = match u8::try_from(match_score_i8) {
+        Ok(score) => score,
+        Err(_) => panic!("Invalid score: {} {} {}", play_score, response_score, match_score_i8)
+    };
+
+    match_score + u8::try_from(response_score).unwrap()
 }
 
-fn parse_score(input: impl BufRead) {
+fn parse_score(input: impl BufRead) -> u64 {
     let mut score: u64 = 0;
 
     for line in input.lines() {
@@ -45,6 +56,8 @@ fn parse_score(input: impl BufRead) {
             Err(error) => panic!("Could not read line: {:?}", error),
         }
     }
+
+    score
 }
 
 fn main() {
@@ -55,7 +68,7 @@ fn main() {
 
     let reader = BufReader::new(input_file);
 
-    parse_score(reader);
+    let final_score = parse_score(reader);
 
-    println!("Hello, world!");
+    println!("Final score: {}", final_score);
 }
