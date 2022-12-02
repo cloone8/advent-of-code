@@ -8,6 +8,17 @@ enum Play {
     Scissors = 3
 }
 
+impl From<i8> for Play {
+    fn from(item: i8) -> Self {
+        match item {
+            1 => Play::Rock,
+            2 => Play::Paper,
+            3 => Play::Scissors,
+            _ => panic!("Invalid play: {}", item)
+        }
+    }
+}
+
 impl FromStr for Play {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -25,19 +36,7 @@ impl Add<MatchResult> for Play {
     type Output = Play;
 
     fn add(self, rhs: MatchResult) -> Self::Output {
-        match rhs {
-            MatchResult::Win => match self {
-                Play::Rock => Play::Paper,
-                Play::Paper => Play::Scissors,
-                Play::Scissors => Play::Rock
-            },
-            MatchResult::Loss => match self {
-                Play::Rock => Play::Scissors,
-                Play::Paper => Play::Rock,
-                Play::Scissors => Play::Paper
-            },
-            MatchResult::Draw => self
-        }
+        Play::from((((self as i8) - 1) + (rhs as i8)).rem_euclid(3) + 1)
     }
 }
 
@@ -68,12 +67,12 @@ fn get_score_from_line(line: String) -> u8 {
         Err(_) => panic!("Invalid play")
     };
 
-    let result = match MatchResult::from_str(game[1]) {
+    let desired_result = match MatchResult::from_str(game[1]) {
         Ok(response) => response,
         Err(_) => panic!("Invalid response")
     };
 
-    let response: Play = play + result;
+    let response: Play = play + desired_result;
 
     let play_score = play as i8;
     let response_score = response as i8;
