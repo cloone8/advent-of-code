@@ -73,9 +73,9 @@ fn get_score_from_line(line: String) -> u8 {
         Err(_) => panic!("Invalid response")
     };
 
+    let response: Play = play + result;
 
     let play_score = play as i8;
-    let response: Play = play + result;
     let response_score = response as i8;
 
     let match_score_i8 = ((response_score) - (play_score) + 1).rem_euclid(3) * 3;
