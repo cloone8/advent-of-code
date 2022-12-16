@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File, io::{BufReader, BufRead}};
+use std::{collections::{HashMap, HashSet}, fs::File, io::{BufReader, BufRead}, cmp::max};
 
 use pathfinding::prelude::dijkstra_all;
 use scanf::sscanf;
@@ -11,7 +11,7 @@ struct Room {
     shortest_paths: HashMap<String, u64>,
 }
 
-const TIME_BUDGET: u64 = 30;
+const TIME_BUDGET: u64 = 26;
 
 fn parse_rooms(input: File) -> HashMap<String, Room> {
     let mut rooms = HashMap::new();
@@ -120,8 +120,9 @@ fn determine_shortest_paths(rooms: &mut HashMap<String, Room>) {
     }
 }
 
-fn get_next_iteration(prev_iter: &Vec<(Route, Route)>, rooms: &HashMap<String, Room>) -> Vec<(Route, Route)> {
-    let mut next_iter = Vec::new();
+fn get_next_iteration(prev_iter: &[(Route, Route)], rooms: &HashMap<String, Room>) -> Vec<(Route, Route)> {
+    let mut next_iter: Vec<(Route, Route)> = Vec::new();
+    let mut found_routes: HashSet<(Route, Route)> = HashSet::new();
 
     for (route_you, route_elephant) in prev_iter.iter() {
         let remaining_rooms_for_you: Vec<&String> = rooms.keys()
@@ -132,7 +133,7 @@ fn get_next_iteration(prev_iter: &Vec<(Route, Route)>, rooms: &HashMap<String, R
         for your_room in remaining_rooms_for_you.iter() {
             let rooms_for_elephant: Vec<&String> = remaining_rooms_for_you.clone().iter()
                 .filter(|name| *name != your_room)
-                .map(|s| *s)
+                .copied()
                 .collect();
 
             for elephant_room in rooms_for_elephant.iter() {
@@ -146,7 +147,13 @@ fn get_next_iteration(prev_iter: &Vec<(Route, Route)>, rooms: &HashMap<String, R
                     let mut new_route_elephant = route_elephant.0.clone();
                     new_route_elephant.push((*elephant_room).clone());
 
-                    next_iter.push(((new_route_you, weight_you), (new_route_elephant, weight_elephant)));
+                    let new_you = (new_route_you, weight_you);
+                    let new_elephant = (new_route_elephant, weight_elephant);
+
+                    if !found_routes.contains(&(new_elephant.clone(), new_you.clone())) {
+                        found_routes.insert((new_you.clone(), new_elephant.clone()));
+                        next_iter.push((new_you, new_elephant));
+                    }
                 }
             }
         }
@@ -158,9 +165,7 @@ fn get_next_iteration(prev_iter: &Vec<(Route, Route)>, rooms: &HashMap<String, R
 type Route = (Vec<String>, u64);
 
 fn get_all_viable_routes(rooms: &HashMap<String, Room>) -> Vec<(Vec<String>, Vec<String>)> {
-    let names = rooms.keys().cloned().collect::<Vec<String>>();
-
-    let max_size = names.len() / 2;
+    // let names = rooms.keys().cloned().collect::<Vec<String>>();
 
     let mut all_iters: Vec<(Route, Route)> =
         vec![(
@@ -170,69 +175,110 @@ fn get_all_viable_routes(rooms: &HashMap<String, Room>) -> Vec<(Vec<String>, Vec
 
     let mut prev_iter = all_iters.clone();
 
-    for _ in 2..max_size + 1 {
+    let mut i = 0;
+    loop {
+        println!("Iter {}", i);
         prev_iter = get_next_iteration(&prev_iter, rooms);
+
+        if prev_iter.len() == 0 {
+            break;
+        }
+
+        println!("Returned {} routes", prev_iter.len());
+
         all_iters.extend(prev_iter.clone());
+        i += 1;
     }
 
     all_iters.iter()
-    .map(|route| (route.0.0.clone(), route.1.0.clone()))
+    .map(|route| (route.0.0.to_owned(), route.1.0.to_owned()))
     .collect()
 }
 
-fn get_score_for_route(route: &Vec<String>, rooms: &HashMap<String, Room>) -> u64 {
+fn get_score_for_route(route: &(Vec<String>, Vec<String>), rooms: &HashMap<String, Room>) -> u64 {
     let mut score: u64 = 0;
-
-    let mut score_per_turn: u64 = 0;
 
     let mut time_spent = 0;
 
-    for i in 0..route.len() {
-        let room = rooms.get(&route[i]).unwrap();
+    let mut events = [Option::<u8>::None; (TIME_BUDGET + 1) as usize];
+
+    for i in 0..route.0.len() {
+        let room = rooms.get(&route.0[i]).unwrap();
 
         match room.valve_weight {
             Some(weight) => {
-                score += score_per_turn; // Spend one turn getting the valve open
-                score_per_turn += u64::from(weight);
                 time_spent += 1;
+
+                events[time_spent as usize] = match events[time_spent as usize] {
+                    Some(val) => Some(val + weight),
+                    None => Some(weight)
+                };
             },
             None => ()
         };
 
-        // Move to the next room
-        if i < route.len() - 1 {
-            let next_room = &route[i + 1];
-            let route_length = room.shortest_paths[next_room];
-            time_spent += route_length;
-            score += score_per_turn * route_length
+        if i < route.0.len() - 1 {
+            time_spent += room.shortest_paths[&route.0[i + 1]];
         }
     }
 
-    assert!(time_spent <= TIME_BUDGET, "Route took too long: {:?}", route);
+    time_spent = 0;
 
-    let time_left = TIME_BUDGET - time_spent;
+    for i in 0..route.1.len() {
+        let room = rooms.get(&route.1[i]).unwrap();
 
-    score += score_per_turn * time_left;
+        match room.valve_weight {
+            Some(weight) => {
+                time_spent += 1;
+
+                events[time_spent as usize] = match events[time_spent as usize] {
+                    Some(val) => Some(val + weight),
+                    None => Some(weight)
+                };
+            },
+            None => ()
+        };
+
+        if i < route.1.len() - 1 {
+            time_spent += room.shortest_paths[&route.1[i + 1]];
+        }
+    }
+
+    let mut score_per_turn: u64 = 0;
+
+    for i in 0..TIME_BUDGET {
+        match events[i as usize] {
+            Some(val) => {
+                score_per_turn += val as u64;
+            },
+            None => ()
+        }
+
+        score += score_per_turn;
+    }
 
     score
 }
 
 fn main() {
-    let file = File::open("test.txt").unwrap();
+    let file = File::open("input.txt").unwrap();
 
     let mut rooms = parse_rooms(file);
 
     eliminate_useless_rooms(&mut rooms);
     determine_shortest_paths(&mut rooms);
 
+    println!("Getting routes");
     let routes = get_all_viable_routes(&rooms);
 
-    println!("{:#?}", routes);
+    // println!("{:#?}", routes);
 
-    // let routes_with_score = routes.iter()
-    //     .map(|route| (get_score_for_route(&route, &rooms), route))
-    //     .max()
-    //     .unwrap();
+    println!("Getting scores");
+    let routes_with_score = routes.iter()
+        // .map(|route| (get_score_for_route(&route, &rooms), route))
+        .map(|route| get_score_for_route(route, &rooms))
+        .max()
+        .unwrap();
 
-    // println!("{:#?}", routes_with_score);
+    println!("{:#?}", routes_with_score);
 }
