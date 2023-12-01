@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2023", "2023", "{025E7C63-BD4B-4A41-BA2A-D3CFEA923056}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1", "1", "{5152118B-7801-4E28-8E60-4E1B58EF5BE3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Part1", "2023\1\Part1\Part1.csproj", "{B8E4A726-72CF-4AAA-A1B6-A8F7D90D0AB9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B8E4A726-72CF-4AAA-A1B6-A8F7D90D0AB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8E4A726-72CF-4AAA-A1B6-A8F7D90D0AB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8E4A726-72CF-4AAA-A1B6-A8F7D90D0AB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8E4A726-72CF-4AAA-A1B6-A8F7D90D0AB9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{5152118B-7801-4E28-8E60-4E1B58EF5BE3} = {025E7C63-BD4B-4A41-BA2A-D3CFEA923056}
+		{B8E4A726-72CF-4AAA-A1B6-A8F7D90D0AB9} = {5152118B-7801-4E28-8E60-4E1B58EF5BE3}
+	EndGlobalSection
+EndGlobal
